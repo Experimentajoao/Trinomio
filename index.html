@@ -165,8 +165,8 @@
 
             <!-- Seletor de níveis -->
             <div class="niveis">
-                <button class="nivel nivel--bloqueado" data-nivel="1" disabled aria-disabled="true">
-                    <span class="nivel__badge">Em breve</span>
+                <button class="nivel" data-nivel="1" aria-pressed="false">
+                    <span class="nivel__badge nivel__badge--destaque">Disponível</span>
                     <span class="nivel__numero">N1</span>
                     <span class="nivel__titulo">Quebra-cabeça</span>
                     <span class="nivel__descricao">Arraste peças e monte o trinômio</span>
@@ -177,12 +177,93 @@
                     <span class="nivel__titulo">Complete a Expressão</span>
                     <span class="nivel__descricao">Descubra o termo que falta</span>
                 </button>
-                <button class="nivel nivel--bloqueado" data-nivel="3" disabled aria-disabled="true">
-                    <span class="nivel__badge">Em breve</span>
+                <button class="nivel" data-nivel="3" aria-pressed="false">
+                    <span class="nivel__badge nivel__badge--destaque">Disponível</span>
                     <span class="nivel__numero">N3</span>
                     <span class="nivel__titulo">Tetris Algébrico</span>
                     <span class="nivel__descricao">Destrua os que não são TQP</span>
                 </button>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- PAINEL DO JOGO NÍVEL 1 — Quebra-cabeça         -->
+            <!-- ============================================== -->
+            <div class="jogo jogo--oculto" id="jogo-nivel1">
+                <!-- HUD simplificado do nível 1 -->
+                <div class="hud hud--nivel1" role="status" aria-live="polite">
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Rodada</span>
+                        <span class="hud__valor" id="qc-rodada">1</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Acertos</span>
+                        <span class="hud__valor" id="qc-acertos">0</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Tentativas</span>
+                        <span class="hud__valor" id="qc-tentativas">0</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Valores</span>
+                        <span class="hud__valor hud__valor--pequeno" id="qc-valores">a=3, b=2</span>
+                    </div>
+                </div>
+
+                <p class="quebracabeca__instrucao">
+                    Arraste cada peça da bandeja para o quadrante correto do tabuleiro.
+                    Use as cores e os rótulos como guia: o quadrado grande tem lado <strong>(a+b)</strong>.
+                </p>
+
+                <div class="quebracabeca">
+                    <!-- TABULEIRO: grade 2×2 com proporções a/b -->
+                    <div class="tabuleiro" id="qc-tabuleiro" aria-label="Tabuleiro do quebra-cabeça">
+                        <div class="tabuleiro__slot" data-tipo="a2" data-posicao="superior-esquerdo"
+                             aria-label="Quadrante superior esquerdo: aguardando peça a²">
+                            <span class="tabuleiro__rotulo">?</span>
+                        </div>
+                        <div class="tabuleiro__slot" data-tipo="ab" data-posicao="superior-direito"
+                             aria-label="Quadrante superior direito: aguardando peça a·b">
+                            <span class="tabuleiro__rotulo">?</span>
+                        </div>
+                        <div class="tabuleiro__slot" data-tipo="ab" data-posicao="inferior-esquerdo"
+                             aria-label="Quadrante inferior esquerdo: aguardando peça a·b">
+                            <span class="tabuleiro__rotulo">?</span>
+                        </div>
+                        <div class="tabuleiro__slot" data-tipo="b2" data-posicao="inferior-direito"
+                             aria-label="Quadrante inferior direito: aguardando peça b²">
+                            <span class="tabuleiro__rotulo">?</span>
+                        </div>
+                    </div>
+
+                    <!-- BANDEJA: peças disponíveis para arrastar -->
+                    <div class="bandeja" id="qc-bandeja" aria-label="Bandeja de peças">
+                        <div class="bandeja__titulo">Peças disponíveis</div>
+                        <div class="bandeja__pecas" id="qc-pecas">
+                            <!-- Peças geradas pelo JS -->
+                        </div>
+                    </div>
+                </div>
+
+                <div class="quebracabeca__rodape">
+                    <div class="quebracabeca__feedback" id="qc-feedback" aria-live="polite"></div>
+                    <div class="quebracabeca__acoes">
+                        <button class="botao botao--secundario" id="qc-reiniciar">
+                            ↻ Reiniciar
+                        </button>
+                        <button class="botao botao--primario" id="qc-proxima" disabled>
+                            Próxima rodada →
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Animação de sucesso compartilhada -->
+                <div class="celebracao" id="qc-celebracao" aria-hidden="true">
+                    <div class="celebracao__conteudo">
+                        <div class="celebracao__icone">🧩</div>
+                        <div class="celebracao__texto">Quadrado montado!</div>
+                        <div class="celebracao__pontos">(a+b)² completo</div>
+                    </div>
+                </div>
             </div>
 
             <!-- Painel do jogo Nível 2 -->
@@ -248,6 +329,75 @@
                     <div class="celebracao__conteudo">
                         <div class="celebracao__icone">🎉</div>
                         <div class="celebracao__texto">Correto!</div>
+                        <div class="celebracao__pontos">+10 pts</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- PAINEL DO JOGO NÍVEL 3 — Tetris Algébrico     -->
+            <!-- ============================================== -->
+            <div class="jogo jogo--oculto" id="jogo-nivel3">
+                <!-- HUD do tetris -->
+                <div class="hud" role="status" aria-live="polite">
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Pontos</span>
+                        <span class="hud__valor" id="tx-pontos">0</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Nível</span>
+                        <span class="hud__valor" id="tx-nivel">1</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Vidas</span>
+                        <span class="hud__valor" id="tx-vidas">❤❤❤</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Destruídos</span>
+                        <span class="hud__valor" id="tx-destruidos">0</span>
+                    </div>
+                </div>
+
+                <p class="tetris__instrucao">
+                    <strong>Toque/clique nos blocos que NÃO são trinômios quadrados perfeitos</strong>
+                    para destruí-los. Deixe os que SÃO TQP descerem em paz até o chão.
+                    <span class="tetris__lembrete">Lembre: TQP tem a forma <code>x² + 2ax + a²</code></span>
+                </p>
+
+                <!-- Arena de jogo -->
+                <div class="tetris" id="tx-arena" aria-label="Arena de blocos caindo">
+                    <!-- Os blocos serão inseridos dinamicamente pelo JS -->
+                </div>
+
+                <!-- Tela de início / game over -->
+                <div class="tela-inicial" id="tx-tela-inicial">
+                    <div class="tela-inicial__conteudo">
+                        <h3 class="tela-inicial__titulo">Tetris Algébrico</h3>
+                        <p class="tela-inicial__texto">
+                            Os blocos vão acelerar conforme você sobe de nível.
+                            Você começa com <strong>3 vidas</strong>. Perde uma vida ao errar (destruir um TQP válido) ou ao deixar um <strong>impostor</strong> chegar ao chão.
+                        </p>
+                        <div class="tetris__legenda">
+                            <div class="tetris__legenda-item">
+                                <span class="tetris__amostra tetris__amostra--valido">x² + 6x + 9</span>
+                                <span>= (x+3)² → DEIXE PASSAR</span>
+                            </div>
+                            <div class="tetris__legenda-item">
+                                <span class="tetris__amostra tetris__amostra--invalido">x² + 5x + 9</span>
+                                <span>≠ TQP → DESTRUA</span>
+                            </div>
+                        </div>
+                        <button class="botao botao--principal" id="tx-iniciar">
+                            ▶ Começar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Animação de pontos volantes -->
+                <div class="celebracao" id="tx-celebracao" aria-hidden="true">
+                    <div class="celebracao__conteudo">
+                        <div class="celebracao__icone">💥</div>
+                        <div class="celebracao__texto">Destruído!</div>
                         <div class="celebracao__pontos">+10 pts</div>
                     </div>
                 </div>
@@ -374,6 +524,9 @@
     <footer class="rodape" role="contentinfo">
         <p class="rodape__texto">
             Produto educacional • Trinômio Quadrado Perfeito • Acessível e gamificado
+        </p>
+        <p class="rodape__credito">
+            criado por <a href="https://instagram.com/experimentajoao" target="_blank" rel="noopener noreferrer" class="rodape__handle">@experimentajoao</a>
         </p>
     </footer>
 

@@ -434,7 +434,429 @@ const Simulador = (() => {
 
 
 /* ====================================================================
-   4. JOGO NÍVEL 2 — "COMPLETE A EXPRESSÃO"
+   4. ALTERNADOR DE NÍVEIS (cards Nível 1 / 2 / 3)
+   ==================================================================== */
+const AlternadorNiveis = (() => {
+    'use strict';
+
+    function inicializar() {
+        const cards = document.querySelectorAll('.nivel[data-nivel]');
+        const painel1 = document.getElementById('jogo-nivel1');
+        const painel2 = document.getElementById('jogo-nivel2');
+        const painel3 = document.getElementById('jogo-nivel3');
+
+        cards.forEach(card => {
+            if (card.disabled) return;
+            card.addEventListener('click', () => {
+                const nivel = card.dataset.nivel;
+
+                // Atualiza visual dos cards
+                cards.forEach(c => {
+                    c.classList.remove('nivel--ativo');
+                    c.setAttribute('aria-pressed', 'false');
+                });
+                card.classList.add('nivel--ativo');
+                card.setAttribute('aria-pressed', 'true');
+
+                // Mostra o painel correspondente e pausa os outros
+                painel1.classList.toggle('jogo--oculto', nivel !== '1');
+                painel2.classList.toggle('jogo--oculto', nivel !== '2');
+                painel3.classList.toggle('jogo--oculto', nivel !== '3');
+
+                if (nivel === '1') {
+                    Quebracabeca.aoEntrar();
+                    TetrisAlgebrico.aoSair();
+                } else if (nivel === '2') {
+                    TetrisAlgebrico.aoSair();
+                } else if (nivel === '3') {
+                    TetrisAlgebrico.aoEntrar();
+                }
+
+                Feedback.clique();
+            });
+        });
+    }
+
+    return { inicializar };
+})();
+
+
+/* ====================================================================
+   5. QUEBRA-CABEÇA (Módulo 2 - Nível 1)
+   --------------------------------------------------------------------
+   O jogador arrasta 4 peças (a², b², ab, ab) para os 4 slots do
+   tabuleiro. Usamos Pointer Events para funcionar uniformemente em
+   mouse, toque e caneta. A cada rodada, sorteamos novos valores
+   de a e b para variar as proporções visuais das peças.
+   ==================================================================== */
+const Quebracabeca = (() => {
+    'use strict';
+
+    const estado = {
+        a: 3,
+        b: 2,
+        rodada: 1,
+        acertos: 0,
+        tentativas: 0,
+        pecasEncaixadas: 0,
+        // Controle do arrasto atual
+        arrastando: null,    // elemento da peça
+        deslocX: 0,
+        deslocY: 0,
+        slotAtual: null,     // slot sob o ponteiro no momento
+        jaInicializado: false
+    };
+
+    let el = {};
+
+    /**
+     * Inicializa referências e listeners (executado uma vez).
+     */
+    function inicializar() {
+        el = {
+            painel:      document.getElementById('jogo-nivel1'),
+            tabuleiro:   document.getElementById('qc-tabuleiro'),
+            pecasContainer: document.getElementById('qc-pecas'),
+            feedback:    document.getElementById('qc-feedback'),
+            rodada:      document.getElementById('qc-rodada'),
+            acertos:     document.getElementById('qc-acertos'),
+            tentativas:  document.getElementById('qc-tentativas'),
+            valores:     document.getElementById('qc-valores'),
+            botaoReiniciar: document.getElementById('qc-reiniciar'),
+            botaoProxima:   document.getElementById('qc-proxima'),
+            celebracao:  document.getElementById('qc-celebracao')
+        };
+
+        el.botaoReiniciar.addEventListener('click', () => {
+            estado.tentativas = 0;
+            estado.pecasEncaixadas = 0;
+            iniciarRodada();
+            Feedback.clique();
+        });
+
+        el.botaoProxima.addEventListener('click', () => {
+            estado.rodada++;
+            estado.pecasEncaixadas = 0;
+            sortearNovosValores();
+            iniciarRodada();
+            Feedback.clique();
+        });
+    }
+
+    /**
+     * Chamado quando o jogador entra no Nível 1 pela primeira vez.
+     */
+    function aoEntrar() {
+        if (!estado.jaInicializado) {
+            iniciarRodada();
+            estado.jaInicializado = true;
+        }
+    }
+
+    /**
+     * Sorteia novos valores de a e b (entre 2 e 6 para manter as peças
+     * grandes o bastante para serem confortáveis de arrastar no mobile).
+     */
+    function sortearNovosValores() {
+        // Garantimos a !== b para que o desafio seja visualmente óbvio
+        do {
+            estado.a = 2 + Math.floor(Math.random() * 5); // 2..6
+            estado.b = 2 + Math.floor(Math.random() * 5);
+        } while (estado.a === estado.b);
+    }
+
+    /**
+     * Monta a rodada: ajusta proporções do tabuleiro, limpa slots,
+     * gera as 4 peças embaralhadas na bandeja.
+     */
+    function iniciarRodada() {
+        // 1. Aplica as proporções a/b no grid do tabuleiro via CSS vars
+        el.tabuleiro.style.setProperty('--prop-a', `${estado.a}fr`);
+        el.tabuleiro.style.setProperty('--prop-b', `${estado.b}fr`);
+
+        // 2. Limpa slots (remove peças encaixadas anteriores)
+        const slots = el.tabuleiro.querySelectorAll('.tabuleiro__slot');
+        slots.forEach(slot => {
+            slot.classList.remove('tabuleiro__slot--preenchido', 'tabuleiro__slot--alvo', 'tabuleiro__slot--invalido');
+            const encaixada = slot.querySelector('.peca-encaixada');
+            if (encaixada) encaixada.remove();
+            // Restaura o rótulo "?"
+            const rotulo = slot.querySelector('.tabuleiro__rotulo');
+            if (rotulo) rotulo.style.display = '';
+        });
+
+        // 3. Gera as 4 peças, embaralhadas
+        gerarPecas();
+
+        // 4. Atualiza HUD e feedback
+        el.feedback.textContent = '';
+        el.feedback.className = 'quebracabeca__feedback';
+        el.botaoProxima.disabled = true;
+        atualizarHUD();
+    }
+
+    /**
+     * Cria as peças (a², b², dois "ab") em ordem aleatória na bandeja.
+     */
+    function gerarPecas() {
+        const a = estado.a;
+        const b = estado.b;
+
+        // Definição das 4 peças que compõem o quadrado
+        const pecas = [
+            { tipo: 'a2', principal: 'a²',  secundario: `${a}×${a} = ${a*a}` },
+            { tipo: 'b2', principal: 'b²',  secundario: `${b}×${b} = ${b*b}` },
+            { tipo: 'ab', principal: 'a·b', secundario: `${a}×${b} = ${a*b}` },
+            { tipo: 'ab', principal: 'a·b', secundario: `${a}×${b} = ${a*b}` }
+        ];
+
+        // Embaralha (Fisher-Yates)
+        for (let i = pecas.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [pecas[i], pecas[j]] = [pecas[j], pecas[i]];
+        }
+
+        // Renderiza
+        el.pecasContainer.innerHTML = '';
+        pecas.forEach((dados, indice) => {
+            const peca = document.createElement('div');
+            peca.className = `peca peca--${dados.tipo}`;
+            peca.dataset.tipo = dados.tipo;
+            peca.dataset.id = `peca-${indice}`;
+            peca.setAttribute('role', 'button');
+            peca.setAttribute('tabindex', '0');
+            peca.setAttribute('aria-label', `Peça ${dados.principal}, igual a ${dados.secundario}`);
+            peca.innerHTML = `
+                <span class="peca__principal">${dados.principal}</span>
+                <span class="peca__secundario">${dados.secundario}</span>
+            `;
+
+            // Pointer Events (funciona em mouse + toque + caneta)
+            peca.addEventListener('pointerdown', iniciarArrasto);
+
+            el.pecasContainer.appendChild(peca);
+        });
+    }
+
+    /**
+     * Inicia o arrasto de uma peça.
+     */
+    function iniciarArrasto(evento) {
+        evento.preventDefault();
+        const peca = evento.currentTarget;
+        if (peca.classList.contains('peca--utilizada')) return;
+
+        estado.arrastando = peca;
+
+        // Captura a posição relativa do clique dentro da peça
+        const rect = peca.getBoundingClientRect();
+        estado.deslocX = evento.clientX - rect.left;
+        estado.deslocY = evento.clientY - rect.top;
+
+        // Guarda dimensões originais antes de tirar do fluxo
+        peca.style.width  = rect.width + 'px';
+        peca.style.height = rect.height + 'px';
+
+        peca.classList.add('peca--arrastando');
+        moverPeca(evento.clientX, evento.clientY);
+
+        // Pointer capture: a peça continua recebendo eventos mesmo se o
+        // ponteiro sair dela. Isso evita travamentos no mobile.
+        peca.setPointerCapture(evento.pointerId);
+
+        peca.addEventListener('pointermove', durante);
+        peca.addEventListener('pointerup',   finalizar);
+        peca.addEventListener('pointercancel', cancelar);
+
+        Feedback.clique();
+    }
+
+    /**
+     * Atualiza posição da peça e destaca o slot sob o ponteiro.
+     */
+    function durante(evento) {
+        if (!estado.arrastando) return;
+        moverPeca(evento.clientX, evento.clientY);
+
+        // Detecta qual slot está sob o ponteiro
+        const slotSob = detectarSlotSob(evento.clientX, evento.clientY);
+
+        // Atualiza destaque visual dos slots
+        if (slotSob !== estado.slotAtual) {
+            limparDestaqueSlots();
+            if (slotSob && !slotSob.classList.contains('tabuleiro__slot--preenchido')) {
+                // Mostra se o slot é válido para a peça que está sendo arrastada
+                const tipoCompativel = slotSob.dataset.tipo === estado.arrastando.dataset.tipo;
+                slotSob.classList.add(tipoCompativel ? 'tabuleiro__slot--alvo' : 'tabuleiro__slot--invalido');
+            }
+            estado.slotAtual = slotSob;
+        }
+    }
+
+    /**
+     * Reposiciona a peça flutuante no ponteiro.
+     */
+    function moverPeca(x, y) {
+        const peca = estado.arrastando;
+        peca.style.left = (x - estado.deslocX) + 'px';
+        peca.style.top  = (y - estado.deslocY) + 'px';
+    }
+
+    /**
+     * Finaliza o arrasto: tenta encaixar ou devolve à bandeja.
+     */
+    function finalizar(evento) {
+        if (!estado.arrastando) return;
+        const peca = estado.arrastando;
+
+        const slotDestino = detectarSlotSob(evento.clientX, evento.clientY);
+        limparDestaqueSlots();
+
+        if (slotDestino &&
+            !slotDestino.classList.contains('tabuleiro__slot--preenchido') &&
+            slotDestino.dataset.tipo === peca.dataset.tipo) {
+            // ENCAIXE CORRETO ✓
+            encaixarPeca(peca, slotDestino);
+        } else {
+            // Devolve para a bandeja (peça volta ao layout original)
+            estado.tentativas++;
+            if (slotDestino) {
+                // Tentou encaixar em lugar errado
+                Feedback.erro();
+                el.feedback.textContent = `Hmm, essa peça não cabe ali. Observe a cor e o tamanho do espaço.`;
+                el.feedback.className = 'quebracabeca__feedback erro';
+            }
+            atualizarHUD();
+        }
+
+        // Limpeza do estado de arrasto
+        peca.classList.remove('peca--arrastando');
+        peca.style.left = '';
+        peca.style.top = '';
+        peca.style.width = '';
+        peca.style.height = '';
+
+        peca.removeEventListener('pointermove', durante);
+        peca.removeEventListener('pointerup', finalizar);
+        peca.removeEventListener('pointercancel', cancelar);
+
+        estado.arrastando = null;
+        estado.slotAtual = null;
+    }
+
+    function cancelar() {
+        if (estado.arrastando) {
+            const peca = estado.arrastando;
+            peca.classList.remove('peca--arrastando');
+            peca.style.left = '';
+            peca.style.top = '';
+            peca.style.width = '';
+            peca.style.height = '';
+            limparDestaqueSlots();
+            estado.arrastando = null;
+            estado.slotAtual = null;
+        }
+    }
+
+    /**
+     * Detecta o slot do tabuleiro que está sob as coordenadas dadas.
+     * Usamos getBoundingClientRect para funcionar mesmo com a peça
+     * flutuando por cima (pointer-events:none cobre esse caso).
+     */
+    function detectarSlotSob(x, y) {
+        const slots = el.tabuleiro.querySelectorAll('.tabuleiro__slot');
+        for (const slot of slots) {
+            const r = slot.getBoundingClientRect();
+            if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) {
+                return slot;
+            }
+        }
+        return null;
+    }
+
+    function limparDestaqueSlots() {
+        el.tabuleiro.querySelectorAll('.tabuleiro__slot').forEach(s => {
+            s.classList.remove('tabuleiro__slot--alvo', 'tabuleiro__slot--invalido');
+        });
+    }
+
+    /**
+     * Encaixa a peça no slot, marca como utilizada e verifica vitória.
+     */
+    function encaixarPeca(peca, slot) {
+        Feedback.acerto();
+
+        // Cria a peça "fixa" dentro do slot
+        const fixa = document.createElement('div');
+        fixa.className = `peca-encaixada peca--${peca.dataset.tipo}`;
+        // Replica o conteúdo da peça original
+        const principal = peca.querySelector('.peca__principal').textContent;
+        const secundario = peca.querySelector('.peca__secundario').textContent;
+        fixa.innerHTML = `
+            <div class="peca-encaixada__principal">${principal}</div>
+            <div class="peca-encaixada__secundario">${secundario}</div>
+        `;
+        // Aplica cor de fundo correta
+        const corMap = { 'a2': 'var(--cor-a-quadrado)', 'b2': 'var(--cor-b-quadrado)', 'ab': 'var(--cor-ab-retangulo)' };
+        fixa.style.backgroundColor = corMap[peca.dataset.tipo];
+        if (peca.dataset.tipo === 'ab') fixa.style.color = 'var(--cor-tinta)';
+
+        slot.appendChild(fixa);
+        slot.classList.add('tabuleiro__slot--preenchido');
+
+        // "Apaga" a peça original da bandeja
+        peca.classList.add('peca--utilizada');
+
+        estado.pecasEncaixadas++;
+        el.feedback.textContent = `Peça encaixada! Faltam ${4 - estado.pecasEncaixadas}.`;
+        el.feedback.className = 'quebracabeca__feedback acerto';
+
+        // Vitória?
+        if (estado.pecasEncaixadas === 4) {
+            estado.acertos++;
+            atualizarHUD();
+            celebrarVitoria();
+        } else {
+            atualizarHUD();
+        }
+    }
+
+    /**
+     * Mostra animação de vitória e libera o botão "Próxima rodada".
+     */
+    function celebrarVitoria() {
+        const cel = el.celebracao;
+        cel.classList.add('celebracao--visivel');
+        cel.setAttribute('aria-hidden', 'false');
+
+        // Feedback positivo extra
+        Feedback.acerto();
+        setTimeout(() => Feedback.acerto(), 200);
+
+        setTimeout(() => {
+            cel.classList.remove('celebracao--visivel');
+            cel.setAttribute('aria-hidden', 'true');
+        }, 1400);
+
+        el.feedback.textContent = `✓ Você reconstruiu (a+b)² = a² + 2ab + b² com a=${estado.a} e b=${estado.b}. Total: ${(estado.a + estado.b) ** 2}.`;
+        el.feedback.className = 'quebracabeca__feedback acerto';
+
+        el.botaoProxima.disabled = false;
+    }
+
+    function atualizarHUD() {
+        el.rodada.textContent = estado.rodada;
+        el.acertos.textContent = estado.acertos;
+        el.tentativas.textContent = estado.tentativas;
+        el.valores.textContent = `a=${estado.a}, b=${estado.b}`;
+    }
+
+    return { inicializar, aoEntrar };
+})();
+
+
+/* ====================================================================
+   6. JOGO NÍVEL 2 — "COMPLETE A EXPRESSÃO"
    --------------------------------------------------------------------
    O jogador recebe um trinômio quadrado perfeito incompleto:
      ex.: x² + 6x + ___    → resposta: 9   (pois (x+3)² = x² + 6x + 9)
@@ -746,7 +1168,402 @@ const JogoNivel2 = (() => {
 
 
 /* ====================================================================
-   5. CONTROLES DE ACESSIBILIDADE (Módulo 3 - toggles)
+   7. TETRIS ALGÉBRICO (Módulo 2 - Nível 3)
+   --------------------------------------------------------------------
+   Expressões matemáticas caem do topo da arena. O jogador deve
+   tocar/clicar nas que NÃO são trinômios quadrados perfeitos (TQP)
+   para destruí-las. As que são TQP devem chegar ao chão em paz.
+   
+   Regras de pontuação:
+     • Destruir um inválido  → +10 pontos
+     • Deixar um válido passar → +5 pontos
+     • Destruir um válido (erro) → -1 vida
+     • Deixar um inválido passar → -1 vida
+   
+   A velocidade e a frequência de spawn aumentam com o nível.
+   Game over após perder as 3 vidas.
+   ==================================================================== */
+const TetrisAlgebrico = (() => {
+    'use strict';
+
+    // === ESTADO DO JOGO ===
+    const estado = {
+        rodando: false,
+        pontos: 0,
+        vidas: 3,
+        nivel: 1,
+        destruidos: 0,
+        blocos: [],          // lista de blocos ativos na arena
+        proximoId: 0,
+        ultimoSpawn: 0,
+        ultimoFrame: 0,
+        intervaloSpawn: 1800,// ms entre spawns (diminui com o nível)
+        velocidadeBase: 60,  // pixels por segundo (aumenta com o nível)
+        rafId: null,
+        alturaArena: 500,
+        larguraArena: 600,
+        pontosParaSubirNivel: 50
+    };
+
+    let el = {};
+
+    /**
+     * Inicializa elementos e listeners (uma vez).
+     */
+    function inicializar() {
+        el = {
+            painel:        document.getElementById('jogo-nivel3'),
+            arena:         document.getElementById('tx-arena'),
+            pontos:        document.getElementById('tx-pontos'),
+            nivel:         document.getElementById('tx-nivel'),
+            vidas:         document.getElementById('tx-vidas'),
+            destruidos:    document.getElementById('tx-destruidos'),
+            telaInicial:   document.getElementById('tx-tela-inicial'),
+            botaoIniciar:  document.getElementById('tx-iniciar')
+        };
+
+        el.botaoIniciar.addEventListener('click', iniciarPartida);
+    }
+
+    /**
+     * Chamado quando o jogador abre o painel deste nível.
+     */
+    function aoEntrar() {
+        // Garante que a arena tenha dimensões válidas para cálculos
+        atualizarDimensoes();
+        window.addEventListener('resize', atualizarDimensoes);
+    }
+
+    /**
+     * Chamado quando o jogador sai do painel. Pausa o jogo.
+     */
+    function aoSair() {
+        if (estado.rodando) {
+            pararLoop();
+            // Mantém o estado, mas o usuário precisa re-iniciar ao voltar
+        }
+        window.removeEventListener('resize', atualizarDimensoes);
+    }
+
+    function atualizarDimensoes() {
+        const r = el.arena.getBoundingClientRect();
+        estado.larguraArena = r.width;
+        estado.alturaArena = r.height;
+    }
+
+    /**
+     * Inicia uma nova partida (zera tudo).
+     */
+    function iniciarPartida() {
+        estado.pontos = 0;
+        estado.vidas = 3;
+        estado.nivel = 1;
+        estado.destruidos = 0;
+        estado.blocos = [];
+        estado.intervaloSpawn = 1800;
+        estado.velocidadeBase = 60;
+        estado.ultimoSpawn = performance.now();
+        estado.ultimoFrame = performance.now();
+        estado.rodando = true;
+
+        // Limpa arena (mas preserva tela inicial e celebração)
+        el.arena.querySelectorAll('.bloco-tetris').forEach(b => b.remove());
+        el.arena.querySelectorAll('.tetris__floater').forEach(f => f.remove());
+
+        el.telaInicial.classList.add('tela-inicial--oculta');
+        atualizarHUD();
+        atualizarDimensoes();
+
+        Feedback.clique();
+        loopPrincipal();
+    }
+
+    /**
+     * Loop principal do jogo (requestAnimationFrame).
+     */
+    function loopPrincipal() {
+        if (!estado.rodando) return;
+
+        const agora = performance.now();
+        const dt = (agora - estado.ultimoFrame) / 1000; // segundos
+        estado.ultimoFrame = agora;
+
+        // 1. Spawn de novos blocos
+        if (agora - estado.ultimoSpawn >= estado.intervaloSpawn) {
+            spawnarBloco();
+            estado.ultimoSpawn = agora;
+        }
+
+        // 2. Atualiza posição de cada bloco
+        const velocidade = estado.velocidadeBase + (estado.nivel - 1) * 15;
+        const limiteInferior = estado.alturaArena - 50; // antes da linha do chão
+
+        for (let i = estado.blocos.length - 1; i >= 0; i--) {
+            const bloco = estado.blocos[i];
+            bloco.y += velocidade * dt;
+            bloco.elemento.style.transform = `translateY(${bloco.y}px)`;
+
+            // Atingiu o chão?
+            if (bloco.y >= limiteInferior) {
+                processarChegadaChao(bloco, i);
+            }
+        }
+
+        estado.rafId = requestAnimationFrame(loopPrincipal);
+    }
+
+    function pararLoop() {
+        estado.rodando = false;
+        if (estado.rafId) {
+            cancelAnimationFrame(estado.rafId);
+            estado.rafId = null;
+        }
+    }
+
+    /**
+     * Cria um novo bloco no topo da arena com expressão aleatória.
+     */
+    function spawnarBloco() {
+        const dadosExpressao = gerarExpressao();
+        const idBloco = estado.proximoId++;
+        const corClasse = `bloco-tetris--cor-${(idBloco % 5) + 1}`;
+
+        const elemento = document.createElement('div');
+        elemento.className = `bloco-tetris ${corClasse}`;
+        elemento.textContent = dadosExpressao.texto;
+
+        // Posição horizontal aleatória (com margem para não colar nas bordas)
+        const larguraEstimada = 180;
+        const xMax = Math.max(20, estado.larguraArena - larguraEstimada - 20);
+        const x = 20 + Math.random() * xMax;
+        elemento.style.left = `${x}px`;
+        elemento.style.top = '-60px'; // começa fora da tela
+
+        const bloco = {
+            id: idBloco,
+            elemento,
+            y: 0,
+            ehValido: dadosExpressao.ehValido,
+            expressao: dadosExpressao.texto,
+            xPos: x
+        };
+
+        // Click/touch destrói o bloco
+        elemento.addEventListener('pointerdown', (e) => {
+            e.preventDefault();
+            destruirBloco(bloco);
+        });
+
+        el.arena.appendChild(elemento);
+        estado.blocos.push(bloco);
+    }
+
+    /**
+     * Gera uma expressão (50% válida, 50% inválida) com cuidado
+     * de fazer os "falsos TQP" parecerem plausíveis para gerar desafio.
+     */
+    function gerarExpressao() {
+        const ehValido = Math.random() < 0.5;
+        // Coeficiente "a" no quadrado (x + a)². Mantemos pequeno para
+        // que mentes infantojuvenis consigam validar mentalmente.
+        const a = 1 + Math.floor(Math.random() * 9); // 1..9
+
+        // Coeficientes do TQP verdadeiro: x² + 2ax + a²
+        const coefMeio = 2 * a;
+        const termoFinal = a * a;
+
+        if (ehValido) {
+            // Forma o TQP genuíno
+            // Variação: às vezes mostramos como (x+a)² já desenvolvido
+            return {
+                texto: `x² + ${coefMeio}x + ${termoFinal}`,
+                ehValido: true
+            };
+        }
+
+        // INVÁLIDO: perturbamos um dos termos de modo plausível
+        const tipoErro = Math.floor(Math.random() * 3);
+
+        if (tipoErro === 0) {
+            // Erro no termo do meio (coef ±1, ±2 ou um valor totalmente aleatório)
+            let coefErrado;
+            do {
+                const delta = [-2, -1, 1, 2, 3][Math.floor(Math.random() * 5)];
+                coefErrado = coefMeio + delta;
+            } while (coefErrado === coefMeio || coefErrado <= 0);
+            return {
+                texto: `x² + ${coefErrado}x + ${termoFinal}`,
+                ehValido: false
+            };
+        }
+
+        if (tipoErro === 1) {
+            // Erro no termo final (não é quadrado perfeito, ou é o quadrado errado)
+            let finalErrado;
+            do {
+                const delta = [-3, -2, -1, 1, 2, 3, 5][Math.floor(Math.random() * 7)];
+                finalErrado = termoFinal + delta;
+            } while (finalErrado === termoFinal || finalErrado <= 0);
+            return {
+                texto: `x² + ${coefMeio}x + ${finalErrado}`,
+                ehValido: false
+            };
+        }
+
+        // tipoErro === 2: sinal trocado no meio (subtração)
+        // Cuidado: x² - 2ax + a² TAMBÉM é TQP! Então usamos coef errado + sinal negativo
+        let coefErrado2;
+        do {
+            const delta = [-2, -1, 1, 2][Math.floor(Math.random() * 4)];
+            coefErrado2 = coefMeio + delta;
+        } while (coefErrado2 === coefMeio || coefErrado2 <= 0);
+        return {
+            texto: `x² − ${coefErrado2}x + ${termoFinal}`,
+            ehValido: false
+        };
+    }
+
+    /**
+     * Jogador clicou/tocou em um bloco — destruir.
+     */
+    function destruirBloco(bloco) {
+        if (bloco.destruido) return;
+        bloco.destruido = true;
+
+        // Remove da lista ativa
+        const indice = estado.blocos.indexOf(bloco);
+        if (indice >= 0) estado.blocos.splice(indice, 1);
+
+        if (bloco.ehValido) {
+            // ERRO: destruiu um TQP válido (deveria ter deixado passar)
+            perderVida();
+            Feedback.erro();
+
+            bloco.elemento.classList.add('bloco-tetris--erro');
+            mostrarFloater(bloco, '−1 vida', true);
+            setTimeout(() => bloco.elemento.remove(), 500);
+        } else {
+            // ACERTO: destruiu um impostor
+            estado.destruidos++;
+            estado.pontos += 10;
+            Feedback.acerto();
+
+            bloco.elemento.classList.add('bloco-tetris--explodindo');
+            mostrarFloater(bloco, '+10', false);
+            setTimeout(() => bloco.elemento.remove(), 400);
+
+            verificarSubidaNivel();
+        }
+
+        atualizarHUD();
+    }
+
+    /**
+     * Bloco chegou ao chão sem ser destruído.
+     */
+    function processarChegadaChao(bloco, indice) {
+        estado.blocos.splice(indice, 1);
+
+        if (bloco.ehValido) {
+            // ACERTO PASSIVO: jogador foi sábio em deixar passar
+            estado.pontos += 5;
+            mostrarFloater(bloco, '+5', false);
+            bloco.elemento.remove();
+        } else {
+            // ERRO: deixou um impostor chegar ao chão
+            perderVida();
+            Feedback.erro();
+            bloco.elemento.classList.add('bloco-tetris--erro');
+            mostrarFloater(bloco, '−1 vida', true);
+            setTimeout(() => bloco.elemento.remove(), 500);
+        }
+
+        atualizarHUD();
+    }
+
+    function perderVida() {
+        estado.vidas--;
+        // Marca o emoji de coração com animação ao atualizar
+        el.vidas.classList.add('vida-perdida');
+        setTimeout(() => el.vidas.classList.remove('vida-perdida'), 600);
+
+        if (estado.vidas <= 0) {
+            finalizarPartida();
+        }
+    }
+
+    /**
+     * Sobe de nível a cada N pontos: aumenta velocidade e frequência.
+     */
+    function verificarSubidaNivel() {
+        const nivelEsperado = 1 + Math.floor(estado.pontos / estado.pontosParaSubirNivel);
+        if (nivelEsperado > estado.nivel) {
+            estado.nivel = nivelEsperado;
+            // Spawn fica mais frequente (mín. 700ms) e velocidade aumenta
+            estado.intervaloSpawn = Math.max(700, 1800 - (estado.nivel - 1) * 150);
+            // Velocidade já é calculada com base em estado.nivel no loop
+        }
+    }
+
+    /**
+     * Mostra um floater de pontuação subindo a partir do bloco.
+     */
+    function mostrarFloater(bloco, texto, ehErro) {
+        const floater = document.createElement('div');
+        floater.className = 'tetris__floater';
+        if (ehErro) floater.classList.add('tetris__floater--erro');
+        floater.textContent = texto;
+        // Posiciona no lugar do bloco
+        floater.style.left = `${bloco.xPos + 30}px`;
+        floater.style.top = `${bloco.y + 10}px`;
+        el.arena.appendChild(floater);
+        setTimeout(() => floater.remove(), 800);
+    }
+
+    /**
+     * Encerra a partida (vidas esgotadas).
+     */
+    function finalizarPartida() {
+        pararLoop();
+
+        // Limpa blocos restantes
+        setTimeout(() => {
+            el.arena.querySelectorAll('.bloco-tetris').forEach(b => b.remove());
+        }, 600);
+
+        // Recria a tela inicial com placar
+        const conteudo = el.telaInicial.querySelector('.tela-inicial__conteudo');
+        conteudo.innerHTML = `
+            <h3 class="tela-inicial__titulo">Fim de jogo!</h3>
+            <p class="tela-inicial__texto">
+                Você destruiu <strong>${estado.destruidos}</strong> impostores e acumulou
+                <strong>${estado.pontos} pontos</strong>, chegando ao
+                <strong>nível ${estado.nivel}</strong>.
+            </p>
+            <button class="botao botao--principal" id="tx-iniciar">
+                ↻ Jogar novamente
+            </button>
+        `;
+        el.botaoIniciar = document.getElementById('tx-iniciar');
+        el.botaoIniciar.addEventListener('click', iniciarPartida);
+
+        el.telaInicial.classList.remove('tela-inicial--oculta');
+    }
+
+    function atualizarHUD() {
+        el.pontos.textContent = estado.pontos;
+        el.nivel.textContent = estado.nivel;
+        el.destruidos.textContent = estado.destruidos;
+        // Mostra corações conforme vidas restantes
+        el.vidas.textContent = '❤'.repeat(Math.max(0, estado.vidas)) || '✗';
+    }
+
+    return { inicializar, aoEntrar, aoSair };
+})();
+
+
+/* ====================================================================
+   8. CONTROLES DE ACESSIBILIDADE (Módulo 3 - toggles)
    ==================================================================== */
 const ControlesAcessibilidade = (() => {
     'use strict';
@@ -836,7 +1653,10 @@ const Libras = (() => {
 document.addEventListener('DOMContentLoaded', () => {
     Navegacao.inicializar();
     Simulador.inicializar();
+    AlternadorNiveis.inicializar();
+    Quebracabeca.inicializar();
     JogoNivel2.inicializar();
+    TetrisAlgebrico.inicializar();
     ControlesAcessibilidade.inicializar();
     Libras.inicializar();
 

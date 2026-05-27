@@ -1300,10 +1300,496 @@ body {
     letter-spacing: 0.05em;
 }
 
+.rodape__credito {
+    font-family: var(--fonte-corpo);
+    font-size: 0.85rem;
+    color: var(--cor-tinta-clara);
+    margin-top: var(--espaco-sm);
+}
+
+.rodape__handle {
+    font-family: var(--fonte-mono);
+    font-weight: 600;
+    color: var(--cor-tinta);
+    text-decoration: none;
+    background-color: var(--cor-terciaria);
+    padding: 2px 10px;
+    border-radius: 999px;
+    border: 1.5px solid var(--cor-tinta);
+    transition: transform var(--transicao-rapida);
+    display: inline-block;
+}
+
+.rodape__handle:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 2px 2px 0 var(--cor-tinta);
+}
+
 /* === FOCO VISÍVEL PARA ACESSIBILIDADE === */
 button:focus-visible,
 input:focus-visible,
 [tabindex]:focus-visible {
     outline: 3px solid var(--cor-primaria);
     outline-offset: 2px;
+}
+
+/* ============================================== */
+/* MÓDULO 2 - NÍVEL 1: QUEBRA-CABEÇA              */
+/* ============================================== */
+
+/* Permite alternar entre painéis de níveis */
+.jogo--oculto {
+    display: none;
+}
+
+/* HUD compacto do nível 1 */
+.hud__valor--pequeno {
+    font-size: 1rem;
+    font-family: var(--fonte-mono);
+    font-weight: 600;
+    padding-top: 6px;
+}
+
+.quebracabeca__instrucao {
+    font-size: 0.95rem;
+    color: var(--cor-tinta-clara);
+    margin-bottom: var(--espaco-lg);
+    text-align: center;
+    max-width: 60ch;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Layout do quebra-cabeça: tabuleiro + bandeja */
+.quebracabeca {
+    display: grid;
+    gap: var(--espaco-lg);
+    grid-template-columns: 1fr;
+    align-items: start;
+}
+
+@media (min-width: 800px) {
+    .quebracabeca {
+        grid-template-columns: 1fr 280px;
+    }
+}
+
+/* === TABULEIRO 2×2 === */
+.tabuleiro {
+    display: grid;
+    /* Proporções dinâmicas controladas via CSS custom properties (JS injeta) */
+    grid-template-columns: var(--prop-a, 3fr) var(--prop-b, 2fr);
+    grid-template-rows: var(--prop-a, 3fr) var(--prop-b, 2fr);
+    gap: 4px;
+    aspect-ratio: 1;
+    width: 100%;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 8px;
+    background-color: var(--cor-tinta);
+    border-radius: var(--raio-medio);
+    box-shadow: 4px 4px 0 var(--cor-terciaria);
+}
+
+.tabuleiro__slot {
+    background-color: var(--cor-papel-escuro);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background-color var(--transicao-rapida), transform var(--transicao-rapida);
+    /* Padronização para drag-and-drop */
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.tabuleiro__rotulo {
+    font-family: var(--fonte-mono);
+    font-size: 1.5rem;
+    color: var(--cor-grafite);
+    opacity: 0.5;
+}
+
+/* Estados visuais do slot durante o arrasto */
+.tabuleiro__slot--alvo {
+    background-color: rgba(244, 168, 0, 0.35);
+    outline: 3px dashed var(--cor-terciaria);
+    outline-offset: -6px;
+}
+
+.tabuleiro__slot--invalido {
+    background-color: rgba(214, 40, 40, 0.2);
+    outline: 3px dashed var(--cor-erro);
+    outline-offset: -6px;
+}
+
+.tabuleiro__slot--preenchido {
+    /* Quando uma peça é encaixada, o slot perde a aparência de "vazio" */
+    background-color: transparent;
+}
+
+.tabuleiro__slot--preenchido .tabuleiro__rotulo {
+    display: none;
+}
+
+/* Peça encaixada no slot (clone fixo) */
+.peca-encaixada {
+    position: absolute;
+    inset: 0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    color: white;
+    font-family: var(--fonte-display);
+    font-weight: 800;
+    pointer-events: none;
+    animation: encaixar var(--transicao-elastica);
+}
+
+.peca-encaixada__principal {
+    font-size: clamp(1.2rem, 4vw, 2rem);
+    line-height: 1;
+}
+
+.peca-encaixada__secundario {
+    font-family: var(--fonte-mono);
+    font-weight: 500;
+    font-size: clamp(0.7rem, 2vw, 0.95rem);
+    opacity: 0.9;
+    margin-top: 4px;
+}
+
+@keyframes encaixar {
+    0%   { transform: scale(0.4); opacity: 0; }
+    60%  { transform: scale(1.08); opacity: 1; }
+    100% { transform: scale(1); }
+}
+
+/* === BANDEJA DE PEÇAS === */
+.bandeja {
+    background-color: var(--cor-papel);
+    border: 2px solid var(--cor-tinta);
+    border-radius: var(--raio-medio);
+    padding: var(--espaco-md);
+}
+
+.bandeja__titulo {
+    font-family: var(--fonte-mono);
+    font-size: 0.7rem;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--cor-tinta-clara);
+    margin-bottom: var(--espaco-md);
+    text-align: center;
+}
+
+.bandeja__pecas {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--espaco-sm);
+    min-height: 200px;
+}
+
+/* === PEÇAS (arrastáveis) === */
+.peca {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    aspect-ratio: 1;
+    border-radius: 8px;
+    color: white;
+    font-family: var(--fonte-display);
+    font-weight: 800;
+    cursor: grab;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: none; /* essencial para Pointer Events em touch */
+    border: 2px solid var(--cor-tinta);
+    box-shadow: 2px 2px 0 var(--cor-tinta);
+    transition: transform var(--transicao-rapida), box-shadow var(--transicao-rapida);
+    position: relative;
+}
+
+.peca:hover {
+    transform: translate(-1px, -1px);
+    box-shadow: 3px 3px 0 var(--cor-tinta);
+}
+
+.peca:active,
+.peca--arrastando {
+    cursor: grabbing;
+    transform: scale(1.05);
+    box-shadow: 4px 4px 12px rgba(0,0,0,0.25);
+    z-index: 1000;
+}
+
+.peca--arrastando {
+    position: fixed; /* fica colada no ponteiro durante o arrasto */
+    pointer-events: none;
+    opacity: 0.92;
+}
+
+/* Cores por tipo (mesma paleta do simulador) */
+.peca--a2 {
+    background-color: var(--cor-a-quadrado);
+}
+
+.peca--b2 {
+    background-color: var(--cor-b-quadrado);
+}
+
+.peca--ab {
+    background-color: var(--cor-ab-retangulo);
+    color: var(--cor-tinta);
+}
+
+/* Peça que está "sumindo" da bandeja (encaixada com sucesso) */
+.peca--utilizada {
+    visibility: hidden;
+}
+
+/* Texto interno das peças */
+.peca__principal {
+    font-size: clamp(1rem, 5vw, 1.6rem);
+    line-height: 1;
+}
+
+.peca__secundario {
+    font-family: var(--fonte-mono);
+    font-weight: 500;
+    font-size: 0.75rem;
+    opacity: 0.85;
+    margin-top: 4px;
+}
+
+/* === RODAPÉ DO QUEBRA-CABEÇA === */
+.quebracabeca__rodape {
+    margin-top: var(--espaco-lg);
+    padding-top: var(--espaco-md);
+    border-top: 1px dashed rgba(26, 22, 20, 0.2);
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-md);
+}
+
+@media (min-width: 600px) {
+    .quebracabeca__rodape {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+    }
+}
+
+.quebracabeca__feedback {
+    font-weight: 600;
+    font-size: 0.95rem;
+    min-height: 1.5rem;
+}
+
+.quebracabeca__feedback.acerto { color: var(--cor-acerto); }
+.quebracabeca__feedback.erro   { color: var(--cor-erro); }
+
+.quebracabeca__acoes {
+    display: flex;
+    gap: var(--espaco-sm);
+    flex-wrap: wrap;
+}
+
+/* Botão "Próxima rodada" desabilitado até concluir */
+.botao:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* ============================================== */
+/* MÓDULO 2 - NÍVEL 3: TETRIS ALGÉBRICO          */
+/* ============================================== */
+
+.tetris__instrucao {
+    font-size: 0.95rem;
+    color: var(--cor-tinta-clara);
+    text-align: center;
+    max-width: 60ch;
+    margin: 0 auto var(--espaco-lg);
+}
+
+.tetris__lembrete {
+    display: block;
+    margin-top: var(--espaco-xs);
+    font-family: var(--fonte-mono);
+    font-size: 0.85rem;
+}
+
+.tetris__lembrete code {
+    background-color: var(--cor-tinta);
+    color: var(--cor-papel);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Arena onde os blocos caem */
+.tetris {
+    position: relative;
+    width: 100%;
+    max-width: 600px;
+    margin: 0 auto;
+    /* Altura proporcional para manter bom jogo no mobile e desktop */
+    height: clamp(420px, 65vh, 600px);
+    background-color: var(--cor-tinta);
+    border-radius: var(--raio-medio);
+    overflow: hidden;
+    box-shadow: 4px 4px 0 var(--cor-terciaria);
+    /* Grade sutil para dar contexto "tetris" */
+    background-image:
+        linear-gradient(rgba(250, 246, 238, 0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(250, 246, 238, 0.04) 1px, transparent 1px);
+    background-size: 40px 40px;
+    /* Linha de "chão" indicada */
+    border-bottom: 4px solid var(--cor-erro);
+}
+
+/* Linha demarcadora do "chão" — onde validar */
+.tetris::before {
+    content: 'CHÃO';
+    position: absolute;
+    bottom: 4px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: var(--fonte-mono);
+    font-size: 0.6rem;
+    letter-spacing: 0.2em;
+    color: var(--cor-erro);
+    background-color: var(--cor-tinta);
+    padding: 2px 8px;
+    border-radius: 4px;
+    z-index: 5;
+}
+
+/* Bloco individual que cai */
+.bloco-tetris {
+    position: absolute;
+    /* posicionamento horizontal definido inline via JS */
+    top: -80px; /* começa fora da tela */
+    padding: 10px 14px;
+    border-radius: 8px;
+    font-family: var(--fonte-mono);
+    font-weight: 600;
+    font-size: clamp(0.9rem, 3vw, 1.15rem);
+    color: white;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    border: 2px solid rgba(0, 0, 0, 0.25);
+    box-shadow: 0 4px 0 rgba(0, 0, 0, 0.25);
+    white-space: nowrap;
+    text-align: center;
+    /* A queda usa transform via JS para alta performance */
+    transition: transform 16ms linear;
+    /* Mantém o toque eficiente em mobile */
+    touch-action: manipulation;
+}
+
+.bloco-tetris:hover {
+    filter: brightness(1.1);
+}
+
+/* Cores variadas para os blocos (distração visual proposital) */
+.bloco-tetris--cor-1 { background-color: var(--cor-a-quadrado); }
+.bloco-tetris--cor-2 { background-color: var(--cor-b-quadrado); }
+.bloco-tetris--cor-3 { background-color: var(--cor-ab-retangulo); color: var(--cor-tinta); border-color: var(--cor-tinta); }
+.bloco-tetris--cor-4 { background-color: var(--cor-acerto); }
+.bloco-tetris--cor-5 { background-color: #6B3FA0; } /* roxo extra para mais variedade */
+
+/* Bloco sendo destruído */
+.bloco-tetris--explodindo {
+    animation: explodir 350ms forwards;
+    pointer-events: none;
+}
+
+@keyframes explodir {
+    0%   { transform: scale(1) rotate(0); opacity: 1; }
+    50%  { transform: scale(1.3) rotate(8deg); opacity: 0.9; }
+    100% { transform: scale(0.2) rotate(-15deg); opacity: 0; }
+}
+
+/* Bloco "errado" (TQP destruído por engano) — pisca vermelho */
+.bloco-tetris--erro {
+    animation: erro-pisca 400ms forwards;
+    pointer-events: none;
+}
+
+@keyframes erro-pisca {
+    0%, 100% { transform: scale(1); }
+    25% { transform: scale(1.15); box-shadow: 0 0 20px var(--cor-erro); }
+    50% { transform: scale(0.95); }
+    75% { transform: scale(1.1); box-shadow: 0 0 20px var(--cor-erro); }
+}
+
+/* Pontos volantes ao destruir */
+.tetris__floater {
+    position: absolute;
+    font-family: var(--fonte-display);
+    font-weight: 800;
+    font-size: 1.4rem;
+    color: var(--cor-terciaria);
+    pointer-events: none;
+    animation: subir 800ms forwards;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    z-index: 10;
+}
+
+.tetris__floater--erro {
+    color: var(--cor-erro);
+}
+
+@keyframes subir {
+    0%   { transform: translateY(0); opacity: 1; }
+    100% { transform: translateY(-60px); opacity: 0; }
+}
+
+/* Legenda na tela inicial */
+.tetris__legenda {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espaco-sm);
+    margin: var(--espaco-md) 0 var(--espaco-lg);
+    text-align: left;
+}
+
+.tetris__legenda-item {
+    display: flex;
+    align-items: center;
+    gap: var(--espaco-sm);
+    font-size: 0.9rem;
+}
+
+.tetris__amostra {
+    font-family: var(--fonte-mono);
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    border-radius: 6px;
+    color: white;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+.tetris__amostra--valido { background-color: var(--cor-acerto); }
+.tetris__amostra--invalido { background-color: var(--cor-erro); }
+
+/* Coração de vida perdida */
+.vida-perdida {
+    animation: vida-perdida 600ms;
+}
+
+@keyframes vida-perdida {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.4); color: var(--cor-erro); }
 }
