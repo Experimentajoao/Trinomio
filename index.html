@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Aplicação educacional interativa para aprender o Trinômio Quadrado Perfeito (a+b)² através de geometria, gamificação e acessibilidade.">
+    <title>Trinômio Quadrado Perfeito — Aprenda (a+b)²</title>
+    
+    <!-- Tipografia distintiva: Fraunces (display elegante) + Plus Jakarta Sans (corpo legível) + JetBrains Mono (matemática) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,800;9..144,900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- ============================================== -->
+    <!-- CABEÇALHO PRINCIPAL                            -->
+    <!-- ============================================== -->
+    <header class="cabecalho" role="banner">
+        <div class="cabecalho__container">
+            <div class="cabecalho__marca">
+                <div class="cabecalho__icone" aria-hidden="true">
+                    <!-- Ícone geométrico: representação visual de (a+b)² -->
+                    <svg viewBox="0 0 40 40" fill="none">
+                        <rect x="2" y="2" width="22" height="22" fill="var(--cor-primaria)" />
+                        <rect x="24" y="2" width="14" height="14" fill="var(--cor-secundaria)" />
+                        <rect x="2" y="24" width="22" height="14" fill="var(--cor-terciaria)" />
+                        <rect x="24" y="16" width="14" height="22" fill="var(--cor-terciaria)" />
+                    </svg>
+                </div>
+                <div class="cabecalho__texto">
+                    <h1 class="cabecalho__titulo">Trinômio Quadrado Perfeito</h1>
+                    <p class="cabecalho__subtitulo">Da geometria à álgebra: <span class="formula-destaque">(a + b)² = a² + 2ab + b²</span></p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- ============================================== -->
+    <!-- NAVEGAÇÃO POR ABAS                             -->
+    <!-- ============================================== -->
+    <nav class="navegacao" role="navigation" aria-label="Navegação entre módulos">
+        <div class="navegacao__container">
+            <button class="aba aba--ativa" data-aba="modulo1" aria-selected="true">
+                <span class="aba__numero">01</span>
+                <span class="aba__nome">Simulador</span>
+                <span class="aba__descricao">Explore geometricamente</span>
+            </button>
+            <button class="aba" data-aba="modulo2" aria-selected="false">
+                <span class="aba__numero">02</span>
+                <span class="aba__nome">Fábrica</span>
+                <span class="aba__descricao">Pratique jogando</span>
+            </button>
+            <button class="aba" data-aba="modulo3" aria-selected="false">
+                <span class="aba__numero">03</span>
+                <span class="aba__nome">Acessibilidade</span>
+                <span class="aba__descricao">Recursos inclusivos</span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ============================================== -->
+    <!-- MÓDULO 1: SIMULADOR GEOMÉTRICO                 -->
+    <!-- ============================================== -->
+    <main class="conteudo" role="main">
+        <section class="modulo modulo--ativo" id="modulo1" aria-labelledby="titulo-modulo1">
+            <div class="modulo__cabecalho">
+                <span class="modulo__rotulo">Módulo 01</span>
+                <h2 class="modulo__titulo" id="titulo-modulo1">Simulador Geométrico</h2>
+                <p class="modulo__intro">Mova os controles para ver como o quadrado de lado (a+b) se decompõe em quatro regiões. Cada área tem um significado algébrico.</p>
+            </div>
+
+            <div class="simulador">
+                <!-- Painel de controles -->
+                <div class="controles" aria-label="Controles do simulador">
+                    <div class="controle">
+                        <div class="controle__topo">
+                            <label for="slider-a" class="controle__rotulo">
+                                <span class="controle__variavel controle__variavel--a">a</span>
+                                <span class="controle__nome">Valor de A</span>
+                            </label>
+                            <output id="valor-a" class="controle__valor">3</output>
+                        </div>
+                        <input type="range" id="slider-a" class="slider slider--a" 
+                               min="1" max="10" step="1" value="3"
+                               aria-label="Ajustar valor de a, de 1 a 10">
+                        <div class="controle__escala" aria-hidden="true">
+                            <span>1</span><span>5</span><span>10</span>
+                        </div>
+                    </div>
+
+                    <div class="controle">
+                        <div class="controle__topo">
+                            <label for="slider-b" class="controle__rotulo">
+                                <span class="controle__variavel controle__variavel--b">b</span>
+                                <span class="controle__nome">Valor de B</span>
+                            </label>
+                            <output id="valor-b" class="controle__valor">2</output>
+                        </div>
+                        <input type="range" id="slider-b" class="slider slider--b"
+                               min="1" max="10" step="1" value="2"
+                               aria-label="Ajustar valor de b, de 1 a 10">
+                        <div class="controle__escala" aria-hidden="true">
+                            <span>1</span><span>5</span><span>10</span>
+                        </div>
+                    </div>
+
+                    <!-- Painel de equações em tempo real -->
+                    <div class="equacoes" role="region" aria-label="Equações calculadas em tempo real" aria-live="polite">
+                        <h3 class="equacoes__titulo">Decomposição algébrica</h3>
+                        <div class="equacao equacao--principal">
+                            <span class="equacao__simbolo">(a + b)²</span>
+                            <span class="equacao__igual">=</span>
+                            <span class="equacao__resultado" id="eq-total">25</span>
+                        </div>
+                        <div class="equacao-detalhe">
+                            <div class="equacao__linha">
+                                <span class="quadrado-cor quadrado-cor--a" aria-hidden="true"></span>
+                                <span class="equacao__termo">a² = <span id="eq-a2">9</span></span>
+                            </div>
+                            <div class="equacao__linha">
+                                <span class="quadrado-cor quadrado-cor--ab" aria-hidden="true"></span>
+                                <span class="equacao__termo">2·a·b = <span id="eq-2ab">12</span></span>
+                            </div>
+                            <div class="equacao__linha">
+                                <span class="quadrado-cor quadrado-cor--b" aria-hidden="true"></span>
+                                <span class="equacao__termo">b² = <span id="eq-b2">4</span></span>
+                            </div>
+                        </div>
+                        <div class="equacao equacao--soma">
+                            <span class="equacao__simbolo">Soma:</span>
+                            <span class="equacao__resultado" id="eq-soma">9 + 12 + 4 = 25</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Área de desenho do quadrado -->
+                <div class="desenho">
+                    <div class="desenho__moldura">
+                        <canvas id="canvas-quadrado" class="desenho__canvas" 
+                                width="500" height="500"
+                                aria-label="Visualização do quadrado decomposto em a², b² e dois retângulos ab"></canvas>
+                        <!-- Rótulos sobrepostos via CSS para acessibilidade visual -->
+                        <div class="desenho__indicador desenho__indicador--lado" id="indicador-lado">
+                            Lado = (a + b) = 5
+                        </div>
+                    </div>
+                    <p class="desenho__legenda">
+                        Observe: o quadrado grande de lado <strong>(a+b)</strong> contém exatamente um quadrado <strong>a²</strong>, um quadrado <strong>b²</strong> e dois retângulos <strong>a·b</strong>.
+                    </p>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- MÓDULO 2: FÁBRICA DE QUADRADOS (JOGO)         -->
+        <!-- ============================================== -->
+        <section class="modulo" id="modulo2" aria-labelledby="titulo-modulo2">
+            <div class="modulo__cabecalho">
+                <span class="modulo__rotulo">Módulo 02</span>
+                <h2 class="modulo__titulo" id="titulo-modulo2">Fábrica de Quadrados</h2>
+                <p class="modulo__intro">Três níveis para testar seus conhecimentos. Comece pelo Nível 2, totalmente jogável!</p>
+            </div>
+
+            <!-- Seletor de níveis -->
+            <div class="niveis">
+                <button class="nivel nivel--bloqueado" data-nivel="1" disabled aria-disabled="true">
+                    <span class="nivel__badge">Em breve</span>
+                    <span class="nivel__numero">N1</span>
+                    <span class="nivel__titulo">Quebra-cabeça</span>
+                    <span class="nivel__descricao">Arraste peças e monte o trinômio</span>
+                </button>
+                <button class="nivel nivel--ativo" data-nivel="2" aria-pressed="true">
+                    <span class="nivel__badge nivel__badge--destaque">Disponível</span>
+                    <span class="nivel__numero">N2</span>
+                    <span class="nivel__titulo">Complete a Expressão</span>
+                    <span class="nivel__descricao">Descubra o termo que falta</span>
+                </button>
+                <button class="nivel nivel--bloqueado" data-nivel="3" disabled aria-disabled="true">
+                    <span class="nivel__badge">Em breve</span>
+                    <span class="nivel__numero">N3</span>
+                    <span class="nivel__titulo">Tetris Algébrico</span>
+                    <span class="nivel__descricao">Destrua os que não são TQP</span>
+                </button>
+            </div>
+
+            <!-- Painel do jogo Nível 2 -->
+            <div class="jogo" id="jogo-nivel2">
+                <!-- HUD: Pontuação, Cronômetro e Streak -->
+                <div class="hud" role="status" aria-live="polite">
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Pontuação</span>
+                        <span class="hud__valor" id="hud-pontos">0</span>
+                    </div>
+                    <div class="hud__item hud__item--cronometro">
+                        <span class="hud__rotulo">Tempo</span>
+                        <span class="hud__valor" id="hud-tempo">30</span>
+                        <div class="hud__barra" aria-hidden="true">
+                            <div class="hud__barra-preenchimento" id="hud-barra"></div>
+                        </div>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Sequência</span>
+                        <span class="hud__valor" id="hud-sequencia">0</span>
+                    </div>
+                    <div class="hud__item">
+                        <span class="hud__rotulo">Acertos</span>
+                        <span class="hud__valor" id="hud-acertos">0/0</span>
+                    </div>
+                </div>
+
+                <!-- Área principal da questão -->
+                <div class="questao" id="painel-questao">
+                    <p class="questao__instrucao">Complete o trinômio quadrado perfeito digitando o valor que falta:</p>
+                    <div class="questao__expressao" id="expressao-questao" aria-live="polite">
+                        <!-- Preenchido pelo JS -->
+                    </div>
+                    <div class="questao__entrada">
+                        <input type="number" id="entrada-resposta" class="entrada-resposta"
+                               placeholder="?" aria-label="Digite o valor que falta">
+                        <button class="botao botao--primario" id="botao-verificar">
+                            <span>Verificar</span>
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                                <path d="M5 12l5 5L20 7"/>
+                            </svg>
+                        </button>
+                    </div>
+                    <div class="questao__feedback" id="feedback-questao" aria-live="assertive"></div>
+                    <button class="botao botao--secundario" id="botao-dica">
+                        💡 Ver dica
+                    </button>
+                </div>
+
+                <!-- Tela inicial / Game Over -->
+                <div class="tela-inicial" id="tela-inicial">
+                    <div class="tela-inicial__conteudo">
+                        <h3 class="tela-inicial__titulo">Pronto para começar?</h3>
+                        <p class="tela-inicial__texto">Você terá <strong>30 segundos</strong> para resolver o maior número possível de trinômios. Cada acerto vale <strong>10 pontos</strong> (+ bônus por sequência!).</p>
+                        <button class="botao botao--principal" id="botao-iniciar">
+                            ▶ Iniciar jogo
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Animação de sucesso (oculta por padrão) -->
+                <div class="celebracao" id="celebracao" aria-hidden="true">
+                    <div class="celebracao__conteudo">
+                        <div class="celebracao__icone">🎉</div>
+                        <div class="celebracao__texto">Correto!</div>
+                        <div class="celebracao__pontos">+10 pts</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ============================================== -->
+        <!-- MÓDULO 3: ACESSIBILIDADE                       -->
+        <!-- ============================================== -->
+        <section class="modulo" id="modulo3" aria-labelledby="titulo-modulo3">
+            <div class="modulo__cabecalho">
+                <span class="modulo__rotulo">Módulo 03</span>
+                <h2 class="modulo__titulo" id="titulo-modulo3">Acessibilidade & Feedback Multissensorial</h2>
+                <p class="modulo__intro">Esta aplicação foi pensada para todos os estudantes. Conheça e ajuste os recursos de inclusão.</p>
+            </div>
+
+            <div class="acessibilidade">
+                <!-- Card: Vibração -->
+                <article class="recurso">
+                    <div class="recurso__icone recurso__icone--vibracao" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 12h2M6 8v8M10 5v14M14 8v8M18 10v4M22 12h0"/>
+                        </svg>
+                    </div>
+                    <h3 class="recurso__titulo">Vibração tátil</h3>
+                    <p class="recurso__texto">Use a Vibration API para sentir o feedback de acertos (vibração curta) e erros (três pulsos curtos). Funciona em smartphones compatíveis.</p>
+                    <div class="recurso__controle">
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-vibracao" checked>
+                            <span class="switch__visor"></span>
+                            <span class="switch__rotulo">Ativar vibração</span>
+                        </label>
+                        <button class="botao botao--terciario" id="testar-vibracao-ok">
+                            Testar acerto
+                        </button>
+                        <button class="botao botao--terciario" id="testar-vibracao-erro">
+                            Testar erro
+                        </button>
+                    </div>
+                </article>
+
+                <!-- Card: Libras -->
+                <article class="recurso">
+                    <div class="recurso__icone recurso__icone--libras" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M9 11V5.5a1.5 1.5 0 013 0V11M12 11V4.5a1.5 1.5 0 013 0V11M15 11V6.5a1.5 1.5 0 013 0V14a6 6 0 01-6 6h-2a6 6 0 01-6-6v-3a1.5 1.5 0 013 0v3"/>
+                        </svg>
+                    </div>
+                    <h3 class="recurso__titulo">Intérprete de Libras</h3>
+                    <p class="recurso__texto">Vídeos com intérprete de Libras estarão disponíveis em janelas flutuantes para cada módulo. Conteúdo a ser inserido em fase futura.</p>
+                    <div class="recurso__controle">
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-libras">
+                            <span class="switch__visor"></span>
+                            <span class="switch__rotulo">Mostrar botões de Libras</span>
+                        </label>
+                    </div>
+                </article>
+
+                <!-- Card: Som -->
+                <article class="recurso">
+                    <div class="recurso__icone recurso__icone--som" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M11 5L6 9H2v6h4l5 4V5zM15.54 8.46a5 5 0 010 7.07M19.07 4.93a10 10 0 010 14.14"/>
+                        </svg>
+                    </div>
+                    <h3 class="recurso__titulo">Feedback sonoro</h3>
+                    <p class="recurso__texto">Beep agradável para acertos e tom descendente para erros, gerados via Web Audio API (sem arquivos externos).</p>
+                    <div class="recurso__controle">
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-som" checked>
+                            <span class="switch__visor"></span>
+                            <span class="switch__rotulo">Ativar sons</span>
+                        </label>
+                    </div>
+                </article>
+
+                <!-- Card: Movimento reduzido -->
+                <article class="recurso">
+                    <div class="recurso__icone recurso__icone--movimento" aria-hidden="true">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"/>
+                            <path d="M8 12h8"/>
+                        </svg>
+                    </div>
+                    <h3 class="recurso__titulo">Reduzir animações</h3>
+                    <p class="recurso__texto">Estudantes sensíveis a estímulos visuais podem desativar animações sem perder funcionalidades.</p>
+                    <div class="recurso__controle">
+                        <label class="switch">
+                            <input type="checkbox" id="toggle-movimento">
+                            <span class="switch__visor"></span>
+                            <span class="switch__rotulo">Reduzir movimento</span>
+                        </label>
+                    </div>
+                </article>
+            </div>
+        </section>
+    </main>
+
+    <!-- Botão flutuante de Libras (visível conforme toggle) -->
+    <button class="libras-flutuante" id="libras-flutuante" aria-label="Abrir vídeo em Libras" hidden>
+        <div class="libras-flutuante__circulo">
+            <span class="libras-flutuante__icone">🤟</span>
+            <span class="libras-flutuante__texto">Libras</span>
+        </div>
+    </button>
+
+    <!-- Modal de Libras (placeholder) -->
+    <div class="libras-modal" id="libras-modal" role="dialog" aria-labelledby="libras-modal-titulo" hidden>
+        <div class="libras-modal__caixa">
+            <button class="libras-modal__fechar" id="libras-modal-fechar" aria-label="Fechar">×</button>
+            <h3 id="libras-modal-titulo" class="libras-modal__titulo">Intérprete de Libras</h3>
+            <div class="libras-modal__video">
+                <div class="libras-modal__placeholder">
+                    <span aria-hidden="true">🤟</span>
+                    <p>Espaço reservado para vídeo do intérprete</p>
+                    <small>O vídeo correspondente ao módulo atual será carregado aqui.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Rodapé -->
+    <footer class="rodape" role="contentinfo">
+        <p class="rodape__texto">
+            Produto educacional • Trinômio Quadrado Perfeito • Acessível e gamificado
+        </p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
